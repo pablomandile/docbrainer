@@ -23,11 +23,28 @@ class GpuStatus
 
     public function check(bool $fresh = false): array
     {
+        // En servidores sin GPU (hosting compartido) no tiene sentido lanzar
+        // nvidia-smi ni sondear Ollama en cada request.
+        if (! config('docbrainer.ollama.enabled')) {
+            return $this->disabled();
+        }
+
         if ($fresh) {
             Cache::forget(self::CACHE_KEY);
         }
 
         return Cache::remember(self::CACHE_KEY, self::CACHE_SECONDS, fn () => $this->probe());
+    }
+
+    private function disabled(): array
+    {
+        return [
+            'gpu' => ['available' => false, 'name' => null, 'vram_gb' => null, 'driver' => null],
+            'ollama' => ['available' => false, 'version' => null, 'models' => []],
+            'available' => false,
+            'level' => 'error',
+            'message' => 'El modo GPU local está desactivado en este entorno: solo está disponible el proveedor Gemini (API).',
+        ];
     }
 
     private function probe(): array

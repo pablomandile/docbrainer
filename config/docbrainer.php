@@ -32,6 +32,9 @@ return [
     */
 
     'ollama' => [
+        // En producción (hosting compartido sin GPU) se apaga con
+        // OLLAMA_ENABLED=false para no sondear nvidia-smi ni el puerto local.
+        'enabled' => (bool) env('OLLAMA_ENABLED', true),
         'base_url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
         'embedding_model' => env('OLLAMA_EMBEDDING_MODEL', 'embeddinggemma'),
         'embedding_dimensions' => (int) env('OLLAMA_EMBEDDING_DIMENSIONS', 768),

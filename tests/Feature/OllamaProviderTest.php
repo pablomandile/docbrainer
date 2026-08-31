@@ -144,6 +144,23 @@ class OllamaProviderTest extends TestCase
         $this->assertStringContainsString('Ollama no está corriendo', $status['message']);
     }
 
+    public function test_gpu_status_short_circuits_when_ollama_disabled(): void
+    {
+        // En producción (hosting compartido) no hay GPU: no debe sondear nada
+        config(['docbrainer.ollama.enabled' => false]);
+        Process::fake();
+        Http::fake();
+
+        $status = app(GpuStatus::class)->check(fresh: true);
+
+        $this->assertFalse($status['available']);
+        $this->assertSame('error', $status['level']);
+        $this->assertStringContainsString('desactivado', $status['message']);
+
+        Process::assertNothingRan();
+        Http::assertNothingSent();
+    }
+
     public function test_ai_settings_can_be_updated(): void
     {
         $user = User::factory()->create();
