@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpenText, FolderKanban } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpenText, FolderKanban, Users } from 'lucide-vue-next';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -14,10 +15,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { index as usersIndex } from '@/routes/admin/users';
 import { index as projectsIndex } from '@/routes/projects';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const page = usePage();
+
+const mainNavItems = computed<NavItem[]>(() => [
     {
         title: 'Proyectos',
         href: projectsIndex(),
@@ -28,7 +32,17 @@ const mainNavItems: NavItem[] = [
         href: '/como-funciona',
         icon: BookOpenText,
     },
-];
+    ...(page.props.auth.isAdmin
+        ? [
+              {
+                  title: 'Usuarios',
+                  href: usersIndex(),
+                  icon: Users,
+                  badge: page.props.pendingUsersCount,
+              },
+          ]
+        : []),
+]);
 
 const footerNavItems: NavItem[] = [];
 </script>

@@ -24,10 +24,18 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
-        return User::create([
+        $user = new User([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
+
+        // role e is_active no son fillable: nadie se los asigna desde el formulario
+        $isAdmin = strcasecmp($input['email'], config('docbrainer.admin_email')) === 0;
+        $user->role = $isAdmin ? User::ROLE_ADMIN : User::ROLE_USER;
+        $user->is_active = $isAdmin;
+        $user->save();
+
+        return $user;
     }
 }

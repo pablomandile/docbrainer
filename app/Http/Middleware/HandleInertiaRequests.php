@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,7 +41,12 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'isAdmin' => (bool) $request->user()?->isAdmin(),
             ],
+            // Badge del menú "Usuarios": cuentas que esperan activación
+            'pendingUsersCount' => fn () => $request->user()?->isAdmin()
+                ? User::where('is_active', false)->count()
+                : 0,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

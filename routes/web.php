@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ChatStreamController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DocumentController;
@@ -13,7 +14,20 @@ Route::get('/', function () {
         : redirect()->route('login');
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+// Cuentas registradas que esperan que un admin las active
+Route::middleware('auth')->get('pendiente', function () {
+    return request()->user()->is_active
+        ? redirect()->route('projects.index')
+        : inertia('auth/PendingApproval');
+})->name('pending-approval');
+
+Route::middleware(['auth', 'verified', 'active', 'admin'])
+    ->prefix('admin')->name('admin.')->group(function () {
+        Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::patch('users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+    });
+
+Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::redirect('dashboard', '/projects')->name('dashboard');
 
     Route::inertia('como-funciona', 'ComoFunciona')->name('how-it-works');

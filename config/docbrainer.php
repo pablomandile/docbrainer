@@ -4,6 +4,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Usuarios
+    |--------------------------------------------------------------------------
+    | Quien se registra con este email queda como admin y activo. El resto
+    | espera a que un admin lo active y le asigne un rol.
+    */
+
+    'admin_email' => env('DOCBRAINER_ADMIN_EMAIL', 'pablo.mandile@gmail.com'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Proveedor Gemini (API)
     |--------------------------------------------------------------------------
     | Todos los datos de la API de Gemini se toman del archivo .env.
