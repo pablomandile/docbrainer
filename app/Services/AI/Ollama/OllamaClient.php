@@ -51,26 +51,10 @@ class OllamaClient
      */
     public function chat(array $messages): array
     {
-        $model = $this->chatModel();
-
-        $response = $this->send('/api/chat', [
-            'model' => $model,
-            'messages' => $messages,
-            'stream' => false,
-        ]);
-
-        $text = (string) $response->json('message.content', '');
-
-        if ($text === '') {
-            throw new OllamaException('Ollama no devolvió texto.');
-        }
-
-        return [
-            'text' => $text,
-            'prompt_tokens' => $response->json('prompt_eval_count'),
-            'completion_tokens' => $response->json('eval_count'),
-            'model' => 'ollama:'.$model,
-        ];
+        // Siempre por streaming: detrás de un túnel de Cloudflare, una respuesta
+        // que tarda más de 100 s en empezar se corta con un 524. El stream
+        // manda bytes desde el primer token.
+        return $this->streamChat($messages, fn (string $delta) => null);
     }
 
     /**
@@ -97,40 +81,41 @@ class OllamaClient
         $completionTokens = null;
         $buffer = '';
 
+        $handleLine = function (string $line) use (&$fullText, &$promptTokens, &$completionTokens, $onDelta, $model): void {
+            $json = json_decode(trim($line), true);
+
+            if (! is_array($json)) {
+                return;
+            }
+
+            if (isset($json['error'])) {
+                throw new OllamaException($this->modelErrorMessage((string) $json['error'], $model));
+            }
+
+            $delta = (string) ($json['message']['content'] ?? '');
+
+            if ($delta !== '') {
+                $fullText .= $delta;
+                $onDelta($delta);
+            }
+
+            if ($json['done'] ?? false) {
+                $promptTokens = $json['prompt_eval_count'] ?? null;
+                $completionTokens = $json['eval_count'] ?? null;
+            }
+        };
+
         while (! $body->eof()) {
             $buffer .= $body->read(8192);
 
             while (($pos = strpos($buffer, "\n")) !== false) {
-                $line = trim(substr($buffer, 0, $pos));
+                $handleLine(substr($buffer, 0, $pos));
                 $buffer = substr($buffer, $pos + 1);
-
-                if ($line === '') {
-                    continue;
-                }
-
-                $json = json_decode($line, true);
-
-                if (! is_array($json)) {
-                    continue;
-                }
-
-                if (isset($json['error'])) {
-                    throw new OllamaException($this->modelErrorMessage((string) $json['error'], $model));
-                }
-
-                $delta = (string) ($json['message']['content'] ?? '');
-
-                if ($delta !== '') {
-                    $fullText .= $delta;
-                    $onDelta($delta);
-                }
-
-                if ($json['done'] ?? false) {
-                    $promptTokens = $json['prompt_eval_count'] ?? null;
-                    $completionTokens = $json['eval_count'] ?? null;
-                }
             }
         }
+
+        // Última línea sin "\n" final (o respuesta no-stream de un proxy)
+        $handleLine($buffer);
 
         if ($fullText === '') {
             throw new OllamaException('Ollama no devolvió texto en el stream.');
@@ -164,6 +149,22 @@ class OllamaClient
             return $response;
         }
 
+        if (in_array($response->status(), [302, 401, 403], true)) {
+            throw new OllamaUnavailableException(
+                'El túnel de Cloudflare rechazó la conexión con Ollama (HTTP '.$response->status().'). '
+                .'Revisá OLLAMA_CF_ACCESS_CLIENT_ID y OLLAMA_CF_ACCESS_CLIENT_SECRET.'
+            );
+        }
+
+        // Túnel sin origen (PC apagada / cloudflared caído) o timeout del borde:
+        // se trata como "no disponible" para que los jobs reintenten.
+        if (in_array($response->status(), [502, 503, 504, 524, 530], true)) {
+            throw new OllamaUnavailableException(
+                'Ollama no responde a través del túnel (HTTP '.$response->status().'). '
+                .'¿Está encendida la PC con GPU y corriendo cloudflared?'
+            );
+        }
+
         $error = (string) $response->json('error', 'HTTP '.$response->status());
 
         throw new OllamaException($this->modelErrorMessage($error, (string) ($payload['model'] ?? '')));
@@ -179,10 +180,33 @@ class OllamaClient
         return 'Error de Ollama: '.$error;
     }
 
-    private function pending(bool $stream): PendingRequest
+    /**
+     * Request base contra Ollama, con el service token de Cloudflare Access
+     * si está configurado (Ollama expuesto por túnel desde la PC con GPU).
+     */
+    public static function http(): PendingRequest
     {
+        // Sin redirects: Cloudflare Access responde a un token inválido con un
+        // 302 a su login, que seguido daría un 200 con HTML.
         $request = Http::baseUrl((string) config('docbrainer.ollama.base_url'))
             ->acceptJson()
+            ->withoutRedirecting();
+
+        $clientId = (string) config('docbrainer.ollama.cf_access_client_id');
+
+        if ($clientId !== '') {
+            $request->withHeaders([
+                'CF-Access-Client-Id' => $clientId,
+                'CF-Access-Client-Secret' => (string) config('docbrainer.ollama.cf_access_client_secret'),
+            ]);
+        }
+
+        return $request;
+    }
+
+    private function pending(bool $stream): PendingRequest
+    {
+        $request = self::http()
             ->timeout(600)       // la primera carga del modelo en VRAM puede tardar
             ->connectTimeout(5);
 

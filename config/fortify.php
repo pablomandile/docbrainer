@@ -144,7 +144,9 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // En producción se cierra con DOCBRAINER_REGISTRATION=false: cada
+        // usuario nuevo consume la cuota de Gemini y la GPU del dueño.
+        ...(env('DOCBRAINER_REGISTRATION', true) ? [Features::registration()] : []),
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([

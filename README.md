@@ -14,7 +14,7 @@ Consultá y resumí tus documentos con IA. Creá un **proyecto** (por ejemplo, *
 | Frontend | Vue 3 + TypeScript + Inertia.js 2 + Tailwind CSS 4 + PrimeVue 4.5 |
 | Base de datos | MySQL 8 (vectores como BLOB + similitud coseno en PHP, índice FULLTEXT para búsqueda híbrida) |
 | IA (nube) | Google Gemini API — embeddings + generación, free tier |
-| IA (local) | Ollama — `embeddinggemma` (embeddings) + `gemma3:4b` (chat) en GPU NVIDIA/CUDA |
+| IA (local) | Ollama — `embeddinggemma` (embeddings) + `gemma4:e4b` (chat) en GPU NVIDIA/CUDA |
 | Procesamiento | Colas de Laravel (driver `database`), jobs idempotentes y reanudables |
 
 ## Instalación (Laragon / Windows)
@@ -74,9 +74,19 @@ Esto levanta el servidor (`http://localhost:8000`), el **worker de cola** (impre
 ### Modo GPU local (opcional)
 
 1. Instalá [Ollama](https://ollama.com) (detecta CUDA automáticamente).
-2. Descargá los modelos: `ollama pull embeddinggemma` y `ollama pull gemma3:4b`.
+2. Descargá los modelos: `ollama pull embeddinggemma` y `ollama pull gemma4:e4b` (con 12 GB de VRAM o más, `gemma4:12b` responde mejor; configuralo en `OLLAMA_CHAT_MODEL`).
 3. En DocBrainer: **Configuración → Proveedor de IA** — si tu GPU y Ollama están disponibles vas a ver el estado en **verde** con el nombre de tu placa y VRAM.
 4. Al subir documentos, elegí "Indexar con: GPU local". Los documentos ya indexados con Gemini se pueden **re-indexar** desde la tabla de documentos.
+
+### GPU de tu PC desde producción (túnel de Cloudflare)
+
+En el hosting no hay GPU: el servidor llama al Ollama de tu PC a través de un túnel de Cloudflare.
+
+1. En tu PC: un túnel **con nombre** (`cloudflared tunnel create`) hacia `http://localhost:11434`, con `httpHostHeader: localhost:11434` en la regla de ingress (sin eso Ollama responde 403), publicado en un hostname de un dominio administrado por Cloudflare. Instalalo como servicio (`cloudflared service install`) para que arranque con Windows.
+2. En Cloudflare Zero Trust: una aplicación de **Access** para ese hostname, con una política *Service Auth* y un **service token**. Sin Access, cualquiera que conozca la URL usa tu GPU.
+3. En el `.env` del servidor: `OLLAMA_ENABLED=true`, `OLLAMA_BASE_URL=https://<hostname>` y el token en `OLLAMA_CF_ACCESS_CLIENT_ID` / `OLLAMA_CF_ACCESS_CLIENT_SECRET`.
+
+Si la PC está apagada, los documentos que se indexan con GPU quedan reintentando cada minuto y siguen solos cuando vuelve; el chat con GPU avisa que no hay conexión. Las llamadas a Ollama van siempre por streaming para no chocar con el límite de 100 s de Cloudflare.
 
 ## Cómo funciona el procesamiento de documentos (vectorización / RAG)
 
@@ -141,7 +151,9 @@ Comparado con mandar el libro entero en cada pregunta (~300.000 tokens), es órd
 | `GEMINI_EMBED_DAILY_LIMIT` / `GEMINI_GENERATE_DAILY_LIMIT` | 900 / 150 | Topes propios diarios (bajo el free tier real) |
 | `GEMINI_EMBED_BATCH_SIZE` | 32 | Chunks por llamada de embedding |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | URL de Ollama |
-| `OLLAMA_EMBEDDING_MODEL` / `OLLAMA_CHAT_MODEL` | `embeddinggemma` / `gemma3:4b` | Modelos locales |
+| `OLLAMA_EMBEDDING_MODEL` / `OLLAMA_CHAT_MODEL` | `embeddinggemma` / `gemma4:e4b` | Modelos locales |
+| `OLLAMA_CF_ACCESS_CLIENT_ID` / `OLLAMA_CF_ACCESS_CLIENT_SECRET` | — | Service token de Cloudflare Access, si Ollama se expone por túnel |
+| `DOCBRAINER_REGISTRATION` | `true` | `false` cierra el registro de usuarios (recomendado en producción) |
 | `PDFTOTEXT_PATH` | — | Ruta al binario pdftotext |
 | `DOCBRAINER_CHUNK_TARGET_TOKENS` | 450 | Tamaño objetivo de chunk |
 | `DOCBRAINER_CHUNK_OVERLAP_PCT` | 10 | Solapamiento entre chunks |

@@ -38,7 +38,11 @@ return [
         'base_url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
         'embedding_model' => env('OLLAMA_EMBEDDING_MODEL', 'embeddinggemma'),
         'embedding_dimensions' => (int) env('OLLAMA_EMBEDDING_DIMENSIONS', 768),
-        'chat_model' => env('OLLAMA_CHAT_MODEL', 'gemma3:4b'),
+        'chat_model' => env('OLLAMA_CHAT_MODEL', 'gemma4:e4b'),
+        // Ollama remoto detrás de un túnel de Cloudflare protegido con Access:
+        // service token que se manda en cada request (vacío = sin Access).
+        'cf_access_client_id' => env('OLLAMA_CF_ACCESS_CLIENT_ID', ''),
+        'cf_access_client_secret' => env('OLLAMA_CF_ACCESS_CLIENT_SECRET', ''),
         // Textos por llamada a /api/embed (la GPU procesa en serie igualmente)
         'embed_batch_size' => 16,
     ],

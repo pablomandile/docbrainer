@@ -2,8 +2,8 @@
 
 namespace App\Services\AI;
 
+use App\Services\AI\Ollama\OllamaClient;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Throwable;
 
@@ -49,10 +49,16 @@ class GpuStatus
 
     private function probe(): array
     {
-        $gpu = $this->probeGpu();
+        // Ollama remoto (túnel a la PC con GPU): nvidia-smi correría en este
+        // servidor, que no tiene GPU, así que no se consulta.
+        $gpu = $this->isRemote()
+            ? ['available' => false, 'name' => null, 'vram_gb' => null, 'driver' => null]
+            : $this->probeGpu();
         $ollama = $this->probeOllama();
 
-        [$level, $message] = $this->verdict($gpu, $ollama);
+        [$level, $message] = $this->isRemote()
+            ? $this->remoteVerdict($ollama)
+            : $this->verdict($gpu, $ollama);
 
         return [
             'gpu' => $gpu,
@@ -96,16 +102,17 @@ class GpuStatus
      */
     private function probeOllama(): array
     {
-        $baseUrl = (string) config('docbrainer.ollama.base_url');
+        // Por túnel la latencia es mayor que contra localhost
+        $timeout = $this->isRemote() ? 8 : 3;
 
         try {
-            $version = Http::timeout(3)->connectTimeout(2)->get($baseUrl.'/api/version');
+            $version = OllamaClient::http()->timeout($timeout)->connectTimeout(4)->get('/api/version');
 
             if (! $version->successful()) {
                 return ['available' => false, 'version' => null, 'models' => []];
             }
 
-            $tags = Http::timeout(3)->connectTimeout(2)->get($baseUrl.'/api/tags');
+            $tags = OllamaClient::http()->timeout($timeout)->connectTimeout(4)->get('/api/tags');
 
             $models = collect($tags->json('models', []))
                 ->pluck('name')
@@ -121,6 +128,34 @@ class GpuStatus
         } catch (Throwable) {
             return ['available' => false, 'version' => null, 'models' => []];
         }
+    }
+
+    private function isRemote(): bool
+    {
+        $host = parse_url((string) config('docbrainer.ollama.base_url'), PHP_URL_HOST);
+
+        return ! in_array($host, ['localhost', '127.0.0.1', '::1', '[::1]'], true);
+    }
+
+    /**
+     * @return array{0: string, 1: string} [nivel, mensaje]
+     */
+    private function remoteVerdict(array $ollama): array
+    {
+        $host = parse_url((string) config('docbrainer.ollama.base_url'), PHP_URL_HOST);
+
+        if ($ollama['available']) {
+            return [
+                'success',
+                "Ollama v{$ollama['version']} disponible en la PC con GPU ({$host}) — listo para usar.",
+            ];
+        }
+
+        return [
+            'error',
+            "La PC con GPU no responde ({$host}): verificá que esté encendida y que Ollama y cloudflared estén corriendo. "
+            .'Mientras tanto, solo está disponible el proveedor Gemini (API).',
+        ];
     }
 
     /**

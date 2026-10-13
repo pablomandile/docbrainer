@@ -6,7 +6,9 @@ use App\Enums\DocumentStatus;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\AI\GpuStatus;
+use App\Services\AI\Ollama\OllamaClient;
 use App\Services\AI\Ollama\OllamaProvider;
+use App\Services\AI\OllamaUnavailableException;
 use App\Services\Vector\VectorMath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -159,6 +161,69 @@ class OllamaProviderTest extends TestCase
 
         Process::assertNothingRan();
         Http::assertNothingSent();
+    }
+
+    public function test_requests_carry_cloudflare_access_service_token(): void
+    {
+        config([
+            'docbrainer.ollama.base_url' => 'https://ollama.example.com',
+            'docbrainer.ollama.cf_access_client_id' => 'id-123.access',
+            'docbrainer.ollama.cf_access_client_secret' => 'secreto',
+        ]);
+
+        Http::fake([
+            '*/api/embed' => Http::response(['embeddings' => [array_fill(0, 768, 1.0)]]),
+        ]);
+
+        app(OllamaClient::class)->embed(['hola']);
+
+        Http::assertSent(fn ($request) => $request->hasHeader('CF-Access-Client-Id', 'id-123.access')
+            && $request->hasHeader('CF-Access-Client-Secret', 'secreto'));
+    }
+
+    public function test_chat_reads_streamed_ndjson_including_last_line_without_newline(): void
+    {
+        Http::fake([
+            '*/api/chat' => Http::response(
+                '{"message":{"content":"Hola "},"done":false}'."\n"
+                .'{"message":{"content":"mundo"},"done":true,"prompt_eval_count":12,"eval_count":3}'
+            ),
+        ]);
+
+        $result = app(OllamaClient::class)->chat([['role' => 'user', 'content' => 'hola']]);
+
+        $this->assertSame('Hola mundo', $result['text']);
+        $this->assertSame(12, $result['prompt_tokens']);
+        $this->assertSame(3, $result['completion_tokens']);
+        Http::assertSent(fn ($request) => $request->data()['stream'] === true);
+    }
+
+    public function test_tunnel_without_origin_is_reported_as_unavailable(): void
+    {
+        // Cloudflare devuelve 530 cuando la PC con GPU está apagada
+        Http::fake(['*/api/embed' => Http::response('error 1033', 530)]);
+
+        $this->expectException(OllamaUnavailableException::class);
+
+        app(OllamaClient::class)->embed(['hola']);
+    }
+
+    public function test_gpu_status_skips_nvidia_smi_when_ollama_is_remote(): void
+    {
+        config(['docbrainer.ollama.base_url' => 'https://ollama.example.com']);
+        Process::fake();
+
+        Http::fake([
+            '*/api/version' => Http::response(['version' => '0.40.3']),
+            '*/api/tags' => Http::response(['models' => [['name' => 'gemma4:e4b']]]),
+        ]);
+
+        $status = app(GpuStatus::class)->check(fresh: true);
+
+        $this->assertTrue($status['available']);
+        $this->assertSame('success', $status['level']);
+        $this->assertStringContainsString('ollama.example.com', $status['message']);
+        Process::assertNothingRan();
     }
 
     public function test_ai_settings_can_be_updated(): void
