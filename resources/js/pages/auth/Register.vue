@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import GoogleButton from '@/components/GoogleButton.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -18,6 +19,8 @@ import { store } from '@/routes/register';
         description="Enter your details below to create your account"
     >
         <Head title="Register" />
+
+        <GoogleButton mode="register" class="mb-6" />
 
         <Form
             v-bind="store.form()"

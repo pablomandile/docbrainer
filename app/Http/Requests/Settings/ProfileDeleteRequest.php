@@ -18,7 +18,10 @@ class ProfileDeleteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => $this->currentPasswordRules(),
+            // Sin contraseña (cuenta de Google) alcanza con confirmar el diálogo
+            'password' => filled($this->user()->getAuthPassword())
+                ? $this->currentPasswordRules()
+                : ['nullable'],
         ];
     }
 }

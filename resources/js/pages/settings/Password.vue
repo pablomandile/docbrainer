@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -10,6 +11,9 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/user-password';
 import type { BreadcrumbItem } from '@/types';
+
+// Las cuentas creadas con Google no tienen contraseña: acá crean la primera
+const hasPassword = computed(() => usePage().props.auth.hasPassword);
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -28,9 +32,16 @@ const breadcrumbItems: BreadcrumbItem[] = [
         <SettingsLayout>
             <div class="space-y-6">
                 <Heading
+                    v-if="hasPassword"
                     variant="small"
                     title="Update password"
                     description="Ensure your account is using a long, random password to stay secure"
+                />
+                <Heading
+                    v-else
+                    variant="small"
+                    title="Crear contraseña"
+                    description="Entraste con Google, así que tu cuenta no tiene contraseña. Creá una si también querés entrar con tu email (y para activar la verificación en dos pasos)."
                 />
 
                 <Form
@@ -47,7 +58,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     class="space-y-6"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
-                    <div class="grid gap-2">
+                    <div v-if="hasPassword" class="grid gap-2">
                         <Label for="current_password">Current password</Label>
                         <PasswordInput
                             id="current_password"

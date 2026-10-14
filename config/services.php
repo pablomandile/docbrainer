@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    // Ingreso con Google. Sin client_id/secret el botón no se muestra y las
+    // rutas dan 404. El redirect tiene que coincidir CARÁCTER POR CARÁCTER con
+    // el cargado en Google Cloud (esquema incluido, sin barra final).
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL').'/auth/google/callback'),
+    ],
+
 ];

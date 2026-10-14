@@ -16,6 +16,7 @@ export type UserRole = 'admin' | 'user';
 export type Auth = {
     user: User;
     isAdmin: boolean;
+    hasPassword: boolean;
 };
 
 export type TwoFactorConfigContent = {

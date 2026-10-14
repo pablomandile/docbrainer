@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\ChatStreamController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DocumentController;
@@ -13,6 +14,13 @@ Route::get('/', function () {
         ? redirect()->route('projects.index')
         : redirect()->route('login');
 })->name('home');
+
+// Ingreso con Google. `guest`: con la sesión abierta, rehacer el flujo solo
+// puede terminar cambiando de cuenta sin querer.
+Route::middleware('guest')->group(function () {
+    Route::get('auth/google/redirect', [GoogleController::class, 'redirect'])->name('google.redirect');
+    Route::get('auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
+});
 
 // Cuentas registradas que esperan que un admin las active
 Route::middleware('auth')->get('pendiente', function () {

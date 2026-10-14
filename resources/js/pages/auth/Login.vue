@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import GoogleButton from '@/components/GoogleButton.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -15,6 +16,7 @@ import { request } from '@/routes/password';
 
 defineProps<{
     status?: string;
+    error?: string;
     canResetPassword: boolean;
     canRegister: boolean;
 }>();
@@ -33,6 +35,16 @@ defineProps<{
         >
             {{ status }}
         </div>
+
+        <div
+            v-if="error"
+            role="alert"
+            class="mb-4 text-center text-sm font-medium text-red-600"
+        >
+            {{ error }}
+        </div>
+
+        <GoogleButton class="mb-6" />
 
         <Form
             v-bind="store.form()"

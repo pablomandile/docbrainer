@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Services\Auth\GoogleLogin;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,11 +43,15 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
                 'isAdmin' => (bool) $request->user()?->isAdmin(),
+                // Las cuentas creadas con Google no tienen contraseña
+                'hasPassword' => filled($request->user()?->getAuthPassword()),
             ],
             // Badge del menú "Usuarios": cuentas que esperan activación
             'pendingUsersCount' => fn () => $request->user()?->isAdmin()
                 ? User::where('is_active', false)->count()
                 : 0,
+            // Sin credenciales en el .env el botón de Google no se dibuja
+            'googleLoginEnabled' => GoogleLogin::enabled(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

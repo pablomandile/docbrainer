@@ -20,6 +20,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             pendingUsersCount: number;
+            googleLoginEnabled: boolean;
             [key: string]: unknown;
         };
     }
