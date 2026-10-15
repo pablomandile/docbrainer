@@ -14,12 +14,16 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { index as usersIndex } from '@/routes/admin/users';
 import { index as projectsIndex } from '@/routes/projects';
 import type { NavItem } from '@/types';
 
 const page = usePage();
+
+// En el menú mobile (sheet) va el ícono solo; en escritorio, el logo con nombre
+const { isMobile } = useSidebar();
 
 const mainNavItems = computed<NavItem[]>(() => [
     {
@@ -54,7 +58,7 @@ const footerNavItems: NavItem[] = [];
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
                         <Link :href="projectsIndex()">
-                            <AppLogo />
+                            <AppLogo :icon-only="isMobile" />
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>

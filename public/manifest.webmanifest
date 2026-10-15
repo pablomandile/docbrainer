@@ -1,0 +1,16 @@
+{
+    "name": "DocBrainer",
+    "short_name": "DocBrainer",
+    "description": "Consultá y resumí tus documentos con IA",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#3d2463",
+    "lang": "es-AR",
+    "icons": [
+        { "src": "/icons/icon-192.png?v=1", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/icon-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/icon-maskable-512.png?v=1", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}

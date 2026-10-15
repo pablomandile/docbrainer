@@ -1,16 +1,42 @@
 <script setup lang="ts">
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+/*
+ * Logo del menú lateral.
+ *
+ * - Escritorio con el menú abierto: logo con el nombre.
+ * - Menú mobile (sheet) o escritorio colapsado: solo el ícono.
+ *
+ * `iconOnly` lo fuerza el menú mobile. El colapsado lo resuelve el CSS con el
+ * `data-collapsible` que pone el Sidebar en su contenedor (`group`).
+ */
+defineProps<{
+    iconOnly?: boolean;
+}>();
 </script>
 
 <template>
-    <div
-        class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
+    <img
+        src="/img/docbrainer-icono.webp"
+        alt="DocBrainer"
+        width="32"
+        height="32"
+        class="size-8 shrink-0 rounded-md"
+        :class="{ 'hidden group-data-[collapsible=icon]:block': !iconOnly }"
+    />
+
+    <span
+        v-if="!iconOnly"
+        class="flex min-w-0 items-center group-data-[collapsible=icon]:hidden"
     >
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
-    </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold"
-            >Laravel Starter Kit</span
-        >
-    </div>
+        <!-- Dos archivos: el de fondo oscuro lleva "Doc" en blanco -->
+        <img
+            src="/img/docbrainer-logo-nombre.webp"
+            alt="DocBrainer"
+            class="h-9 w-auto dark:hidden"
+        />
+        <img
+            src="/img/docbrainer-logo-nombre-fondo-oscuro.webp"
+            alt="DocBrainer"
+            class="hidden h-9 w-auto dark:block"
+        />
+    </span>
 </template>

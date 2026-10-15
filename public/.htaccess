@@ -1,3 +1,16 @@
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
+# El service worker y el manifest son lo que le avisa al navegador que hay algo
+# nuevo: el CDN de Hostinger los guardaría 7 días si no se lo prohibimos.
+<IfModule mod_headers.c>
+    <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+        Header set Cache-Control "no-cache, must-revalidate, max-age=0"
+        Header unset Expires
+    </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

@@ -32,9 +32,22 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        {{-- Al cambiar un ícono: subir el ?v= (el CDN y Chrome mobile cachean las URLs fijas) --}}
+        <link rel="icon" href="/favicon.ico?v=1" sizes="any">
+        <link rel="icon" href="/icons/favicon-96.png?v=1" type="image/png" sizes="96x96">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#3d2463">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="DocBrainer">
+
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('/sw.js').catch(function () {});
+                });
+            }
+        </script>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
