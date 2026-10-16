@@ -87,6 +87,29 @@
     }
 }
 
+/*
+ * Tamaño de letra elegible (Apariencia). Va en PORCENTAJE y no en px, para que
+ * se multiplique con el tamaño que la persona ya puso en su navegador. El
+ * default está en :root y no solo en el selector de atributo, para que la
+ * página se vea bien aunque falte data-text. Los valores se repiten en
+ * App\Enums\TextSize::scale().
+ */
+:root {
+    font-size: 100%;
+}
+
+html[data-text='small'] {
+    font-size: 87.5%;
+}
+
+html[data-text='normal'] {
+    font-size: 100%;
+}
+
+html[data-text='large'] {
+    font-size: 112.5%;
+}
+
 @layer utilities {
     body,
     html {

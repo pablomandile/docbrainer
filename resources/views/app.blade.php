@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+{{-- data-text lo escribe el servidor (no hay opción "según el sistema"): sin script, sin parpadeo --}}
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+    data-text="{{ ($textSize ?? \App\Enums\TextSize::default())->value }}"
+    @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -40,6 +43,26 @@
         <meta name="theme-color" content="#3d2463">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-title" content="DocBrainer">
+
+        {{-- beforeinstallprompt dispara apenas carga, normalmente ANTES de que monte Vue:
+             se captura acá y el botón "Instalar app" lo lee de window.__pwaInstall --}}
+        <script>
+            (function () {
+                window.__pwaInstall = { prompt: null, installed: false };
+
+                window.addEventListener('beforeinstallprompt', function (e) {
+                    e.preventDefault(); // el banner automático no; lo lanza el botón
+                    window.__pwaInstall.prompt = e;
+                    window.dispatchEvent(new CustomEvent('pwa:installable'));
+                });
+
+                window.addEventListener('appinstalled', function () {
+                    window.__pwaInstall.prompt = null;
+                    window.__pwaInstall.installed = true;
+                    window.dispatchEvent(new CustomEvent('pwa:installed'));
+                });
+            })();
+        </script>
 
         <script>
             if ('serviceWorker' in navigator) {

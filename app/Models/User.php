@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\TextSize;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -38,6 +39,16 @@ class User extends Authenticatable
     public const ROLES = [self::ROLE_ADMIN, self::ROLE_USER];
 
     /**
+     * Sin esto, un usuario recién creado (sin refrescar desde la base) tendría
+     * `text_size` en null y el middleware devolvería null donde espera un enum.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'text_size' => TextSize::DEFAULT,
+    ];
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
@@ -63,6 +74,7 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'ai_settings' => 'array',
             'is_active' => 'boolean',
+            'text_size' => TextSize::class,
         ];
     }
 

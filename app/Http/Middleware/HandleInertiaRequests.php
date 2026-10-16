@@ -2,9 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\TextSize;
 use App\Models\User;
 use App\Services\Auth\GoogleLogin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\View;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -52,6 +54,9 @@ class HandleInertiaRequests extends Middleware
                 : 0,
             // Sin credenciales en el .env el botón de Google no se dibuja
             'googleLoginEnabled' => GoogleLogin::enabled(),
+            // Lo resuelve HandleTextSize, que corre antes que este middleware
+            'textSize' => fn () => View::shared('textSize', TextSize::default())->value,
+            'textSizes' => fn () => TextSize::options(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

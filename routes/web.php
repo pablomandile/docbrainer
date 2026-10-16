@@ -6,6 +6,7 @@ use App\Http\Controllers\ChatStreamController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\Settings\TextSizeController;
 use App\Http\Controllers\SummaryController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,9 @@ Route::get('/', function () {
         ? redirect()->route('projects.index')
         : redirect()->route('login');
 })->name('home');
+
+// Tamaño de letra: con o sin sesión (sin sesión queda solo la cookie)
+Route::put('text-size', [TextSizeController::class, 'update'])->name('text-size.update');
 
 // Ingreso con Google. `guest`: con la sesión abierta, rehacer el flujo solo
 // puede terminar cambiando de cuenta sin querer.

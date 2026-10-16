@@ -21,7 +21,23 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             pendingUsersCount: number;
             googleLoginEnabled: boolean;
+            textSize: 'small' | 'normal' | 'large';
             [key: string]: unknown;
+        };
+    }
+}
+
+declare global {
+    interface BeforeInstallPromptEvent extends Event {
+        prompt(): Promise<void>;
+        userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+    }
+
+    interface Window {
+        // Lo arma el script inline de app.blade.php
+        __pwaInstall?: {
+            prompt: BeforeInstallPromptEvent | null;
+            installed: boolean;
         };
     }
 }
