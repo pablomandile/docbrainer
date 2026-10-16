@@ -17,7 +17,7 @@ const hasPassword = computed(() => usePage().props.auth.hasPassword);
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
-        title: 'Password settings',
+        title: 'Contraseña',
         href: edit(),
     },
 ];
@@ -25,17 +25,17 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Password settings" />
+        <Head title="Contraseña" />
 
-        <h1 class="sr-only">Password settings</h1>
+        <h1 class="sr-only">Contraseña</h1>
 
         <SettingsLayout>
             <div class="space-y-6">
                 <Heading
                     v-if="hasPassword"
                     variant="small"
-                    title="Update password"
-                    description="Ensure your account is using a long, random password to stay secure"
+                    title="Cambiar contraseña"
+                    description="Usá una contraseña larga y aleatoria para mantener tu cuenta segura"
                 />
                 <Heading
                     v-else
@@ -59,39 +59,39 @@ const breadcrumbItems: BreadcrumbItem[] = [
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
                     <div v-if="hasPassword" class="grid gap-2">
-                        <Label for="current_password">Current password</Label>
+                        <Label for="current_password">Contraseña actual</Label>
                         <PasswordInput
                             id="current_password"
                             name="current_password"
                             class="mt-1 block w-full"
                             autocomplete="current-password"
-                            placeholder="Current password"
+                            placeholder="Contraseña actual"
                         />
                         <InputError :message="errors.current_password" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="password">New password</Label>
+                        <Label for="password">Contraseña nueva</Label>
                         <PasswordInput
                             id="password"
                             name="password"
                             class="mt-1 block w-full"
                             autocomplete="new-password"
-                            placeholder="New password"
+                            placeholder="Contraseña nueva"
                         />
                         <InputError :message="errors.password" />
                     </div>
 
                     <div class="grid gap-2">
                         <Label for="password_confirmation"
-                            >Confirm password</Label
+                            >Confirmar contraseña</Label
                         >
                         <PasswordInput
                             id="password_confirmation"
                             name="password_confirmation"
                             class="mt-1 block w-full"
                             autocomplete="new-password"
-                            placeholder="Confirm password"
+                            placeholder="Repetí la contraseña"
                         />
                         <InputError :message="errors.password_confirmation" />
                     </div>
@@ -100,7 +100,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         <Button
                             :disabled="processing"
                             data-test="update-password-button"
-                            >Save password</Button
+                            >Guardar contraseña</Button
                         >
 
                         <Transition
@@ -113,7 +113,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                                 v-show="recentlySuccessful"
                                 class="text-sm text-neutral-600"
                             >
-                                Saved.
+                                Guardado.
                             </p>
                         </Transition>
                     </div>
