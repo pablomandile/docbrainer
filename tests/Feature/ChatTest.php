@@ -201,4 +201,41 @@ class ChatTest extends TestCase
             ->assertOk()
             ->assertJsonPath('conversation.title', 'Privada');
     }
+
+    /**
+     * Regresión: Gemini separa las líneas del stream con CRLF ("\r\n\r\n"
+     * entre eventos) y el último evento puede no traer el separador final.
+     * El parser buscaba solo "\n\n" y el chat respondía siempre «Gemini no
+     * devolvió texto en el stream».
+     */
+    public function test_chat_parses_gemini_stream_with_crlf_separators(): void
+    {
+        $sse = 'data: '.json_encode([
+            'candidates' => [['content' => ['parts' => [['text' => 'La cocina cuesta ']]]]],
+        ])."\r\n\r\n".'data: '.json_encode([
+            'candidates' => [['content' => ['parts' => [['text' => '5 millones [1].']]]]],
+            'usageMetadata' => ['promptTokenCount' => 120, 'candidatesTokenCount' => 15],
+        ]);
+
+        Http::fake([
+            '*batchEmbedContents*' => Http::response([
+                'embeddings' => [['values' => array_fill(0, 768, 0.5)]],
+            ]),
+            '*streamGenerateContent*' => Http::response($sse, 200, ['Content-Type' => 'text/event-stream']),
+        ]);
+
+        $user = User::factory()->create();
+        $project = $this->readyProject($user);
+
+        $content = $this->actingAs($user)
+            ->post("/projects/{$project->id}/chat", ['message' => '¿Cuánto cuesta la cocina?'])
+            ->streamedContent();
+
+        $this->assertStringNotContainsString('event: error', $content);
+        $this->assertStringContainsString('event: done', $content);
+
+        $assistant = Conversation::first()->messages()->where('role', 'assistant')->first();
+        $this->assertSame('La cocina cuesta 5 millones [1].', $assistant->content);
+        $this->assertSame(120, $assistant->prompt_tokens);
+    }
 }

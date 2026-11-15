@@ -132,39 +132,49 @@ class GeminiClient
         $completionTokens = null;
         $buffer = '';
 
+        $procesar = function (string $event) use (&$fullText, &$promptTokens, &$completionTokens, $onDelta): void {
+            foreach (explode("\n", $event) as $line) {
+                if (! str_starts_with($line, 'data:')) {
+                    continue;
+                }
+
+                $json = json_decode(trim(substr($line, 5)), true);
+
+                if (! is_array($json)) {
+                    continue;
+                }
+
+                $delta = collect($json['candidates'][0]['content']['parts'] ?? [])
+                    ->pluck('text')
+                    ->filter()
+                    ->implode('');
+
+                if ($delta !== '') {
+                    $fullText .= $delta;
+                    $onDelta($delta);
+                }
+
+                $promptTokens = $json['usageMetadata']['promptTokenCount'] ?? $promptTokens;
+                $completionTokens = $json['usageMetadata']['candidatesTokenCount'] ?? $completionTokens;
+            }
+        };
+
         while (! $body->eof()) {
-            $buffer .= $body->read(8192);
+            // Gemini separa las líneas con CRLF: sin normalizar, nunca aparece
+            // el "\n\n" que cierra cada evento y el stream llega vacío. Un "\r"
+            // suelto al final de una lectura se arregla al llegar su "\n".
+            $buffer = str_replace("\r\n", "\n", $buffer.$body->read(8192));
 
             // Cada evento SSE termina en doble salto de línea
             while (($pos = strpos($buffer, "\n\n")) !== false) {
-                $event = substr($buffer, 0, $pos);
+                $procesar(substr($buffer, 0, $pos));
                 $buffer = substr($buffer, $pos + 2);
-
-                foreach (explode("\n", $event) as $line) {
-                    if (! str_starts_with($line, 'data:')) {
-                        continue;
-                    }
-
-                    $json = json_decode(trim(substr($line, 5)), true);
-
-                    if (! is_array($json)) {
-                        continue;
-                    }
-
-                    $delta = collect($json['candidates'][0]['content']['parts'] ?? [])
-                        ->pluck('text')
-                        ->filter()
-                        ->implode('');
-
-                    if ($delta !== '') {
-                        $fullText .= $delta;
-                        $onDelta($delta);
-                    }
-
-                    $promptTokens = $json['usageMetadata']['promptTokenCount'] ?? $promptTokens;
-                    $completionTokens = $json['usageMetadata']['candidatesTokenCount'] ?? $completionTokens;
-                }
             }
+        }
+
+        // Un último evento sin el doble salto de línea final
+        if (trim($buffer) !== '') {
+            $procesar($buffer);
         }
 
         if ($fullText === '') {
