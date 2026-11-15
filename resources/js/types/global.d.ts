@@ -22,6 +22,7 @@ declare module '@inertiajs/core' {
             pendingUsersCount: number;
             googleLoginEnabled: boolean;
             textSize: 'small' | 'normal' | 'large';
+            demo: { email: string; password: string } | null;
             [key: string]: unknown;
         };
     }

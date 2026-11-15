@@ -26,3 +26,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Base y key para armar el fixture de la demo (docbrainer:demo-armar)
+.env.demoarmado

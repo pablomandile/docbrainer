@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import { ShieldBan, ShieldCheck } from 'lucide-vue-next';
-import { onUnmounted, ref } from 'vue';
+import { computed, onUnmounted, ref } from 'vue';
+import AvisoDemo from '@/components/AvisoDemo.vue';
 import Heading from '@/components/Heading.vue';
 import TwoFactorRecoveryCodes from '@/components/TwoFactorRecoveryCodes.vue';
 import TwoFactorSetupModal from '@/components/TwoFactorSetupModal.vue';
@@ -32,6 +33,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const { hasSetupData, clearTwoFactorAuthData } = useTwoFactorAuth();
 const showSetupModal = ref<boolean>(false);
+const demo = computed(() => usePage().props.demo);
 
 onUnmounted(() => {
     clearTwoFactorAuthData();
@@ -45,7 +47,9 @@ onUnmounted(() => {
         <h1 class="sr-only">Configuración de la verificación en dos pasos</h1>
 
         <SettingsLayout>
-            <div class="space-y-6">
+            <AvisoDemo v-if="demo" />
+
+            <div v-else class="space-y-6">
                 <Heading
                     variant="small"
                     title="Verificación en dos pasos"

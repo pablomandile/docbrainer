@@ -48,8 +48,9 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureViews(): void
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/Login', [
-            'canResetPassword' => Features::enabled(Features::resetPasswords()),
-            'canRegister' => Features::enabled(Features::registration()),
+            // En la demo la cuenta es compartida: ni recuperar la clave ni registrarse.
+            'canResetPassword' => Features::enabled(Features::resetPasswords()) && ! config('demo.enabled'),
+            'canRegister' => Features::enabled(Features::registration()) && ! config('demo.enabled'),
             'status' => $request->session()->get('status'),
             // Rechazos del ingreso con Google
             'error' => $request->session()->get('error'),

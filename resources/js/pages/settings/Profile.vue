@@ -2,6 +2,7 @@
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import AvisoDemo from '@/components/AvisoDemo.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -30,6 +31,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const demo = computed(() => page.props.demo);
 </script>
 
 <template>
@@ -46,7 +48,10 @@ const user = computed(() => page.props.auth.user);
                     description="Actualizá tu nombre y tu email"
                 />
 
+                <AvisoDemo v-if="demo" />
+
                 <Form
+                    v-else
                     v-bind="ProfileController.update.form()"
                     class="space-y-6"
                     v-slot="{ errors, processing, recentlySuccessful }"
@@ -126,7 +131,7 @@ const user = computed(() => page.props.auth.user);
                 </Form>
             </div>
 
-            <DeleteUser />
+            <DeleteUser v-if="!demo" />
         </SettingsLayout>
     </AppLayout>
 </template>

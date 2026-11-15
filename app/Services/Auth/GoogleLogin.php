@@ -29,6 +29,11 @@ class GoogleLogin
     {
         // Config::get y no Config::string: sin las variables el valor es null
         // y Config::string tiraría excepción justo en el caso que esto cubre.
+        // En la demo la cuenta es compartida: nadie entra con su Google.
+        if (Config::get('demo.enabled')) {
+            return false;
+        }
+
         return filled(Config::get('services.google.client_id'))
             && filled(Config::get('services.google.client_secret'));
     }

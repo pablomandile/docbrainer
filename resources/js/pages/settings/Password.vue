@@ -2,6 +2,7 @@
 import { Form, Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
+import AvisoDemo from '@/components/AvisoDemo.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
@@ -14,6 +15,7 @@ import type { BreadcrumbItem } from '@/types';
 
 // Las cuentas creadas con Google no tienen contraseña: acá crean la primera
 const hasPassword = computed(() => usePage().props.auth.hasPassword);
+const demo = computed(() => usePage().props.demo);
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -30,7 +32,9 @@ const breadcrumbItems: BreadcrumbItem[] = [
         <h1 class="sr-only">Contraseña</h1>
 
         <SettingsLayout>
-            <div class="space-y-6">
+            <AvisoDemo v-if="demo" />
+
+            <div v-else class="space-y-6">
                 <Heading
                     v-if="hasPassword"
                     variant="small"

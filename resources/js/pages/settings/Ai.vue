@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { Cpu, RefreshCw } from 'lucide-vue-next';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
@@ -10,6 +10,7 @@ import Tag from 'primevue/tag';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import { computed, ref } from 'vue';
+import AvisoDemo from '@/components/AvisoDemo.vue';
 import Heading from '@/components/Heading.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -54,6 +55,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const toast = useToast();
+
+// En la demo se usa solo Gemini: no hay selector de proveedor.
+const demo = computed(() => usePage().props.demo);
 
 const gpuInfo = ref<GpuInfo>(props.gpu);
 const checking = ref(false);
@@ -115,162 +119,174 @@ const usagePct = (used: number, limit: number) =>
                     description="Elegí si DocBrainer usa la API de Gemini o modelos locales en tu GPU (vía Ollama)"
                 />
 
-                <!-- Estado de GPU / Ollama -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span
-                            class="flex items-center gap-2 text-sm font-medium"
-                        >
-                            <Cpu class="size-4" />
-                            Estado del modo GPU local
-                        </span>
-                        <Button
-                            size="small"
-                            severity="secondary"
-                            outlined
-                            label="Volver a comprobar"
-                            :loading="checking"
-                            @click="recheckGpu"
-                        >
-                            <template #icon>
-                                <RefreshCw class="size-4" />
-                            </template>
-                        </Button>
-                    </div>
+                <AvisoDemo
+                    v-if="demo"
+                    mensaje="En la demo se usa Gemini, con los topes diarios de abajo. Elegir el proveedor (Gemini o Ollama en tu GPU) es parte de la versión completa."
+                />
 
-                    <Message :severity="gpuInfo.level" :closable="false">
-                        {{ gpuInfo.message }}
-                    </Message>
-
-                    <div
-                        v-if="
-                            gpuInfo.ollama.available &&
-                            gpuInfo.ollama.models.length > 0
-                        "
-                        class="flex flex-wrap items-center gap-1.5"
-                    >
-                        <span class="text-xs text-muted-foreground"
-                            >Modelos instalados:</span
-                        >
-                        <Tag
-                            v-for="model in gpuInfo.ollama.models"
-                            :key="model"
-                            severity="secondary"
-                            :value="model"
-                        />
-                    </div>
-
-                    <p
-                        v-if="!gpuInfo.ollama.available"
-                        class="text-xs text-muted-foreground"
-                    >
-                        Para el modo GPU: instalá Ollama desde
-                        <a
-                            href="https://ollama.com"
-                            target="_blank"
-                            class="underline"
-                            >ollama.com</a
-                        >
-                        y descargá los modelos con
-                        <code class="rounded bg-muted px-1"
-                            >ollama pull
-                            {{ ollamaDefaults.embedding_model }}</code
-                        >
-                        y
-                        <code class="rounded bg-muted px-1"
-                            >ollama pull {{ ollamaDefaults.chat_model }}</code
-                        >.
-                    </p>
-                </div>
-
-                <!-- Preferencias -->
-                <form class="space-y-6" @submit.prevent="submit">
-                    <div class="space-y-2">
-                        <span class="text-sm font-medium"
-                            >Proveedor para chat y resúmenes</span
-                        >
-                        <div class="flex flex-col gap-2">
-                            <label class="flex items-center gap-2 text-sm">
-                                <RadioButton
-                                    v-model="form.chat_provider"
-                                    value="gemini"
-                                />
-                                API de Gemini (nube, requiere GEMINI_API_KEY en
-                                .env)
-                            </label>
-                            <label
-                                class="flex items-center gap-2 text-sm"
-                                :class="!gpuInfo.available ? 'opacity-50' : ''"
+                <template v-else>
+                    <!-- Estado de GPU / Ollama -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span
+                                class="flex items-center gap-2 text-sm font-medium"
                             >
-                                <RadioButton
-                                    v-model="form.chat_provider"
-                                    value="ollama"
-                                    :disabled="!gpuInfo.available"
-                                />
-                                GPU local (Ollama) — sin límites de cuota
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <span class="text-sm font-medium">
-                            Proveedor de indexado por defecto (al subir
-                            documentos)
-                        </span>
-                        <div class="flex flex-col gap-2">
-                            <label class="flex items-center gap-2 text-sm">
-                                <RadioButton
-                                    v-model="form.default_index_provider"
-                                    value="gemini"
-                                />
-                                API de Gemini
-                            </label>
-                            <label
-                                class="flex items-center gap-2 text-sm"
-                                :class="!gpuInfo.available ? 'opacity-50' : ''"
+                                <Cpu class="size-4" />
+                                Estado del modo GPU local
+                            </span>
+                            <Button
+                                size="small"
+                                severity="secondary"
+                                outlined
+                                label="Volver a comprobar"
+                                :loading="checking"
+                                @click="recheckGpu"
                             >
-                                <RadioButton
-                                    v-model="form.default_index_provider"
-                                    value="ollama"
-                                    :disabled="!gpuInfo.available"
-                                />
-                                GPU local (Ollama)
-                            </label>
+                                <template #icon>
+                                    <RefreshCw class="size-4" />
+                                </template>
+                            </Button>
                         </div>
-                        <p class="text-xs text-muted-foreground">
-                            El proveedor se elige por documento al subirlo; esto
-                            define la opción preseleccionada. Cambiar de
-                            proveedor requiere re-indexar los documentos
-                            existentes (botón «Re-indexar» en la tabla de
-                            documentos).
+
+                        <Message :severity="gpuInfo.level" :closable="false">
+                            {{ gpuInfo.message }}
+                        </Message>
+
+                        <div
+                            v-if="
+                                gpuInfo.ollama.available &&
+                                gpuInfo.ollama.models.length > 0
+                            "
+                            class="flex flex-wrap items-center gap-1.5"
+                        >
+                            <span class="text-xs text-muted-foreground"
+                                >Modelos instalados:</span
+                            >
+                            <Tag
+                                v-for="model in gpuInfo.ollama.models"
+                                :key="model"
+                                severity="secondary"
+                                :value="model"
+                            />
+                        </div>
+
+                        <p
+                            v-if="!gpuInfo.ollama.available"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Para el modo GPU: instalá Ollama desde
+                            <a
+                                href="https://ollama.com"
+                                target="_blank"
+                                class="underline"
+                                >ollama.com</a
+                            >
+                            y descargá los modelos con
+                            <code class="rounded bg-muted px-1"
+                                >ollama pull
+                                {{ ollamaDefaults.embedding_model }}</code
+                            >
+                            y
+                            <code class="rounded bg-muted px-1"
+                                >ollama pull
+                                {{ ollamaDefaults.chat_model }}</code
+                            >.
                         </p>
                     </div>
 
-                    <div
-                        v-if="form.chat_provider === 'ollama'"
-                        class="space-y-2"
-                    >
-                        <span class="text-sm font-medium"
-                            >Modelo de chat local</span
-                        >
-                        <Select
-                            v-model="form.ollama_chat_model"
-                            :options="chatModelOptions"
-                            :placeholder="
-                                ollamaDefaults.chat_model + ' (por defecto)'
-                            "
-                            show-clear
-                            class="w-full max-w-sm"
-                            size="small"
-                        />
-                    </div>
+                    <!-- Preferencias -->
+                    <form class="space-y-6" @submit.prevent="submit">
+                        <div class="space-y-2">
+                            <span class="text-sm font-medium"
+                                >Proveedor para chat y resúmenes</span
+                            >
+                            <div class="flex flex-col gap-2">
+                                <label class="flex items-center gap-2 text-sm">
+                                    <RadioButton
+                                        v-model="form.chat_provider"
+                                        value="gemini"
+                                    />
+                                    API de Gemini (nube, requiere GEMINI_API_KEY
+                                    en .env)
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 text-sm"
+                                    :class="
+                                        !gpuInfo.available ? 'opacity-50' : ''
+                                    "
+                                >
+                                    <RadioButton
+                                        v-model="form.chat_provider"
+                                        value="ollama"
+                                        :disabled="!gpuInfo.available"
+                                    />
+                                    GPU local (Ollama) — sin límites de cuota
+                                </label>
+                            </div>
+                        </div>
 
-                    <Button
-                        type="submit"
-                        label="Guardar"
-                        :loading="form.processing"
-                    />
-                </form>
+                        <div class="space-y-2">
+                            <span class="text-sm font-medium">
+                                Proveedor de indexado por defecto (al subir
+                                documentos)
+                            </span>
+                            <div class="flex flex-col gap-2">
+                                <label class="flex items-center gap-2 text-sm">
+                                    <RadioButton
+                                        v-model="form.default_index_provider"
+                                        value="gemini"
+                                    />
+                                    API de Gemini
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 text-sm"
+                                    :class="
+                                        !gpuInfo.available ? 'opacity-50' : ''
+                                    "
+                                >
+                                    <RadioButton
+                                        v-model="form.default_index_provider"
+                                        value="ollama"
+                                        :disabled="!gpuInfo.available"
+                                    />
+                                    GPU local (Ollama)
+                                </label>
+                            </div>
+                            <p class="text-xs text-muted-foreground">
+                                El proveedor se elige por documento al subirlo;
+                                esto define la opción preseleccionada. Cambiar
+                                de proveedor requiere re-indexar los documentos
+                                existentes (botón «Re-indexar» en la tabla de
+                                documentos).
+                            </p>
+                        </div>
+
+                        <div
+                            v-if="form.chat_provider === 'ollama'"
+                            class="space-y-2"
+                        >
+                            <span class="text-sm font-medium"
+                                >Modelo de chat local</span
+                            >
+                            <Select
+                                v-model="form.ollama_chat_model"
+                                :options="chatModelOptions"
+                                :placeholder="
+                                    ollamaDefaults.chat_model + ' (por defecto)'
+                                "
+                                show-clear
+                                class="w-full max-w-sm"
+                                size="small"
+                            />
+                        </div>
+
+                        <Button
+                            type="submit"
+                            label="Guardar"
+                            :loading="form.processing"
+                        />
+                    </form>
+                </template>
 
                 <!-- Uso de la API hoy -->
                 <div class="space-y-3">

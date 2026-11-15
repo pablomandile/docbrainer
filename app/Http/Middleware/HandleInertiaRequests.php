@@ -57,6 +57,11 @@ class HandleInertiaRequests extends Middleware
             // Lo resuelve HandleTextSize, que corre antes que este middleware
             'textSize' => fn () => View::shared('textSize', TextSize::default())->value,
             'textSizes' => fn () => TextSize::options(),
+            // Datos de acceso de la demo (solo con APP_DEMO=true), para el login.
+            // En la demo además se esconden los formularios de la cuenta.
+            'demo' => config('demo.enabled')
+                ? ['email' => config('demo.email'), 'password' => config('demo.password')]
+                : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
