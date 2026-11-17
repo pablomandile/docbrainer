@@ -82,11 +82,24 @@ Esto levanta el servidor (`http://localhost:8000`), el **worker de cola** (impre
 
 En el hosting no hay GPU: el servidor llama al Ollama de tu PC a través de un túnel de Cloudflare.
 
-1. En tu PC: un túnel **con nombre** (`cloudflared tunnel create`) hacia `http://localhost:11434`, con `httpHostHeader: localhost:11434` en la regla de ingress (sin eso Ollama responde 403), publicado en un hostname de un dominio administrado por Cloudflare. Instalalo como servicio (`cloudflared service install`) para que arranque con Windows.
-2. En Cloudflare Zero Trust: una aplicación de **Access** para ese hostname, con una política *Service Auth* y un **service token**. Sin Access, cualquiera que conozca la URL usa tu GPU.
-3. En el `.env` del servidor: `OLLAMA_ENABLED=true`, `OLLAMA_BASE_URL=https://<hostname>` y el token en `OLLAMA_CF_ACCESS_CLIENT_ID` / `OLLAMA_CF_ACCESS_CLIENT_SECRET`.
+```
+DocBrainer (Hostinger) ──HTTPS + service token──> Cloudflare Access ──túnel pc-gpu──> Ollama :11434 ──> placa NVIDIA
+```
 
-Si la PC está apagada, los documentos que se indexan con GPU quedan reintentando cada minuto y siguen solos cuando vuelve; el chat con GPU avisa que no hay conexión. Las llamadas a Ollama van siempre por streaming para no chocar con el límite de 100 s de Cloudflare.
+En la instalación de Pablo, el túnel es `pc-gpu`, el mismo que usa Lumora (ver `gpu_worker/README.md` de Lumora). Se administra desde el panel de Cloudflare y cloudflared corre como servicio de Windows. DocBrainer usa el hostname `docbrainer-gpu.bambudev.com.ar`.
+
+1. **Ollama arranca con Windows**: acceso directo a `ollama app.exe` en `shell:startup`. El instalador lo crea, pero si se borró, el túnel responde 502 hasta que alguien abre Ollama a mano.
+2. **El hostname público del túnel**: en *Zero Trust → Networks → Tunnels → pc-gpu → Public Hostnames*, `docbrainer-gpu` → **HTTP** `localhost:11434`. En *Additional application settings → HTTP Settings*, poné **HTTP Host Header** = `localhost:11434`. Sin eso, Ollama responde 403 a todo, porque solo acepta pedidos con Host `localhost`.
+   - Si el túnel se maneja con archivo en vez de con el panel, lo mismo va en el `config.yml`: `originRequest: { httpHostHeader: localhost:11434 }`.
+3. **Access**, porque Ollama no tiene usuario ni clave, y sin Access cualquiera que conozca la URL usa tu GPU:
+   - *Access → Service Auth → Service Tokens → Create* (sin vencimiento). Anotá el Client ID y el Secret: el Secret se muestra una sola vez.
+   - *Access → Applications → Add → Self-hosted* para `docbrainer-gpu.bambudev.com.ar`, con **una sola** política: Action **Service Auth**, que incluya ese token.
+4. **El `.env` del servidor**: `OLLAMA_ENABLED=true`, `OLLAMA_BASE_URL=https://docbrainer-gpu.bambudev.com.ar` y el token en `OLLAMA_CF_ACCESS_CLIENT_ID` / `OLLAMA_CF_ACCESS_CLIENT_SECRET`, entre comillas simples. Después, `php artisan config:cache`.
+5. **Probalo**: sin token, `curl https://docbrainer-gpu.bambudev.com.ar/api/version` tiene que dar 403 o un redirect a Access. En *Configuración → Proveedor de IA* de la app, la PC tiene que verse en verde.
+
+Si la PC está apagada, los documentos que se indexan con GPU quedan reintentando cada minuto y siguen solos cuando vuelve. El chat con GPU avisa que no hay conexión. Las llamadas a Ollama van siempre por streaming, para no chocar con el límite de 100 s de Cloudflare.
+
+**Convivencia con Lumora**: las dos apps usan la misma placa de 12 GB. Antes de generar una imagen, el gateway de Lumora le pide a Ollama que descargue sus modelos (`UNLOAD_OLLAMA=true`). Ollama los vuelve a cargar cuando DocBrainer los pide, así que la primera respuesta después de una imagen tarda unos segundos más. La demo (pablomandile) no usa la GPU: tiene `OLLAMA_ENABLED=false`.
 
 ## Cómo funciona el procesamiento de documentos (vectorización / RAG)
 
