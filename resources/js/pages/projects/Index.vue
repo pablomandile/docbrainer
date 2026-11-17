@@ -114,15 +114,24 @@ const openProject = (project: Project) => {
         <ConfirmDialog />
 
         <div class="flex h-full flex-1 flex-col gap-6 p-4">
-            <div class="flex items-center justify-between">
-                <div>
+            <!-- En el celular, título y botón apilados: lado a lado el botón se
+                 aplastaba en dos renglones y tapaba la descripción -->
+            <div
+                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+                <div class="min-w-0">
                     <h1 class="text-xl font-semibold">Proyectos</h1>
                     <p class="text-sm text-muted-foreground">
                         Cada proyecto agrupa documentos para consultarlos y
                         resumirlos con IA.
                     </p>
                 </div>
-                <Button label="Nuevo proyecto" @click="openCreate">
+                <Button
+                    label="Nuevo proyecto"
+                    class="shrink-0 self-start whitespace-nowrap sm:self-auto"
+                    data-test="nuevo-proyecto"
+                    @click="openCreate"
+                >
                     <template #icon>
                         <Plus class="size-4" />
                     </template>

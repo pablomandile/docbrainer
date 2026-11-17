@@ -45,7 +45,9 @@ const questionSteps = [
     <Head title="Cómo funciona" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto flex max-w-3xl flex-col gap-10 p-6">
+        <!-- w-full min-w-0: sin esto, las líneas largas de los <pre> ensanchan
+             la página a 832 px en el celular en vez de scrollear dentro del bloque -->
+        <div class="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-10 p-6">
             <header class="flex flex-col gap-2">
                 <h1 class="flex items-center gap-2 text-2xl font-semibold">
                     <BookOpenText class="size-6" />

@@ -256,8 +256,10 @@ const acceptedTypes = '.pdf,.docx,.txt,.md,.json';
 
 <template>
     <div class="flex flex-col gap-6">
-        <div class="flex items-center gap-2">
-            <label class="text-sm font-medium">Indexar con:</label>
+        <div class="flex flex-wrap items-center gap-2">
+            <label class="text-sm font-medium whitespace-nowrap"
+                >Indexar con:</label
+            >
             <Select
                 v-model="uploadForm.embedding_provider"
                 :options="providerOptions"
@@ -265,7 +267,7 @@ const acceptedTypes = '.pdf,.docx,.txt,.md,.json';
                 option-value="value"
                 option-disabled="disabled"
                 size="small"
-                class="w-56"
+                class="w-56 max-w-full"
             />
             <span
                 v-if="!ai.ollama_available"
@@ -286,6 +288,12 @@ const acceptedTypes = '.pdf,.docx,.txt,.md,.json';
             upload-label="Subir"
             cancel-label="Cancelar"
             :disabled="uploadForm.processing"
+            :pt="{
+                header: { class: 'flex-wrap' },
+                pcChooseButton: { root: { class: 'whitespace-nowrap' } },
+                pcUploadButton: { root: { class: 'whitespace-nowrap' } },
+                pcCancelButton: { root: { class: 'whitespace-nowrap' } },
+            }"
             @uploader="uploader"
         >
             <template #empty>
@@ -303,18 +311,137 @@ const acceptedTypes = '.pdf,.docx,.txt,.md,.json';
             </template>
         </FileUpload>
 
-        <DataTable :value="rows" data-key="id" striped-rows>
+        <!-- Hasta 1280 px, tarjetas (en dos columnas desde 768): la tabla tiene
+             seis columnas y, con la barra lateral, el estado y los botones
+             quedaban fuera de la pantalla. -->
+        <div
+            class="grid gap-3 md:grid-cols-2 xl:hidden"
+            data-test="documentos-tarjetas"
+        >
+            <div
+                v-if="rows.length === 0"
+                class="p-4 text-center text-sm text-muted-foreground md:col-span-2"
+            >
+                Todavía no hay documentos en este proyecto.
+            </div>
+            <div
+                v-for="data in rows"
+                :key="data.id"
+                class="flex min-w-0 flex-col gap-2 rounded-xl border p-4"
+            >
+                <div class="min-w-0">
+                    <p class="font-medium wrap-anywhere">{{ data.title }}</p>
+                    <p class="text-xs wrap-anywhere text-muted-foreground">
+                        {{ data.original_name }}
+                    </p>
+                </div>
+                <div
+                    class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+                >
+                    <span class="uppercase">{{ data.extension }}</span>
+                    <span>·</span>
+                    <span>{{ formatSize(data.size_bytes) }}</span>
+                    <template v-if="data.page_count">
+                        <span>·</span>
+                        <span>{{ data.page_count }} págs.</span>
+                    </template>
+                    <Tag
+                        :severity="
+                            data.embedding_provider === 'ollama'
+                                ? 'warn'
+                                : 'secondary'
+                        "
+                        :value="
+                            data.embedding_provider === 'ollama'
+                                ? 'GPU local'
+                                : 'Gemini'
+                        "
+                    />
+                </div>
+                <div class="flex flex-col gap-1">
+                    <DocumentStatusTag
+                        :status="data.status"
+                        :label="data.status_label"
+                        class="self-start"
+                    />
+                    <ProgressBar
+                        v-if="
+                            data.status === 'embedding' && data.chunk_count > 0
+                        "
+                        :value="embeddingProgress(data)"
+                        class="h-2"
+                        :show-value="false"
+                    />
+                    <span
+                        v-if="data.failure_reason"
+                        class="text-xs wrap-anywhere text-red-500"
+                    >
+                        {{ data.failure_reason }}
+                    </span>
+                </div>
+                <div class="-mb-2 flex justify-end gap-1">
+                    <Button
+                        v-if="data.status === 'failed'"
+                        icon="pi pi-refresh"
+                        severity="warn"
+                        text
+                        rounded
+                        aria-label="Reintentar"
+                        @click="retry(data)"
+                    />
+                    <Button
+                        v-if="
+                            data.status === 'ready' || data.status === 'failed'
+                        "
+                        icon="pi pi-sync"
+                        severity="secondary"
+                        text
+                        rounded
+                        aria-label="Re-indexar"
+                        @click="openReindexMenu($event, data)"
+                    />
+                    <a :href="documentsDownload([project.id, data.id]).url">
+                        <Button
+                            icon="pi pi-download"
+                            severity="secondary"
+                            text
+                            rounded
+                            aria-label="Descargar"
+                        />
+                    </a>
+                    <Button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        text
+                        rounded
+                        aria-label="Eliminar"
+                        @click="confirmDelete(data)"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <DataTable
+            :value="rows"
+            data-key="id"
+            striped-rows
+            class="hidden xl:block"
+        >
             <template #empty>
                 <div class="p-4 text-center text-sm text-muted-foreground">
                     Todavía no hay documentos en este proyecto.
                 </div>
             </template>
 
-            <Column field="title" header="Documento">
+            <Column field="title" header="Documento" class="min-w-64">
                 <template #body="{ data }">
                     <div class="flex flex-col">
-                        <span class="font-medium">{{ data.title }}</span>
-                        <span class="text-xs text-muted-foreground">
+                        <span class="font-medium wrap-anywhere">{{
+                            data.title
+                        }}</span>
+                        <span
+                            class="text-xs wrap-anywhere text-muted-foreground"
+                        >
                             {{ data.original_name }}
                             <template v-if="data.page_count">
                                 · {{ data.page_count }} págs.</template
@@ -353,7 +480,7 @@ const acceptedTypes = '.pdf,.docx,.txt,.md,.json';
                 </template>
             </Column>
 
-            <Column field="status" header="Estado" class="w-56">
+            <Column field="status" header="Estado" class="w-44">
                 <template #body="{ data }">
                     <div class="flex flex-col gap-1">
                         <DocumentStatusTag
