@@ -21,6 +21,7 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             pendingUsersCount: number;
             googleLoginEnabled: boolean;
+            gpuIndicator: boolean;
             textSize: 'small' | 'normal' | 'large';
             demo: { email: string; password: string } | null;
             [key: string]: unknown;

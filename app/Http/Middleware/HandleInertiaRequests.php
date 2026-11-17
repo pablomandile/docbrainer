@@ -54,6 +54,8 @@ class HandleInertiaRequests extends Middleware
                 : 0,
             // Sin credenciales en el .env el botón de Google no se dibuja
             'googleLoginEnabled' => GoogleLogin::enabled(),
+            // Semáforo de la GPU en el encabezado: solo con Ollama habilitado (no en la demo)
+            'gpuIndicator' => (bool) config('docbrainer.ollama.enabled'),
             // Lo resuelve HandleTextSize, que corre antes que este middleware
             'textSize' => fn () => View::shared('textSize', TextSize::default())->value,
             'textSizes' => fn () => TextSize::options(),

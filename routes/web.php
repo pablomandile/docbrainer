@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\ChatStreamController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\GpuIndicatorController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\Settings\TextSizeController;
 use App\Http\Controllers\SummaryController;
@@ -43,6 +44,9 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     Route::redirect('dashboard', '/projects')->name('dashboard');
 
     Route::inertia('como-funciona', 'ComoFunciona')->name('how-it-works');
+
+    // Semáforo de la GPU en el encabezado
+    Route::get('gpu/estado', GpuIndicatorController::class)->name('gpu.status');
 
     Route::resource('projects', ProjectController::class)
         ->only(['index', 'store', 'show', 'update', 'destroy']);
