@@ -24,6 +24,9 @@ return [
     'fixture_path' => database_path('demo/fixture.json'),
     'corpus_path' => database_path('demo/corpus'),
 
-    // Hora del reset nocturno (hora del server).
-    'reset_at' => '04:00',
+    // Hora del reset nocturno, en hora de Argentina (el server está en UTC).
+    // No en punto: a las hh:00 arrancan los cron de todas las apps de la cuenta
+    // y el hosting llegó a negar procesos nuevos.
+    'reset_at' => '04:07',
+    'reset_timezone' => 'America/Argentina/Buenos_Aires',
 ];

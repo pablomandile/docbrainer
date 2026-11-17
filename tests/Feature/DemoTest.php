@@ -13,6 +13,8 @@ use App\Services\AI\ApiQuota;
 use App\Services\Retrieval\Retriever;
 use App\Services\Vector\VectorMath;
 use Database\Seeders\DemoSeeder;
+use Illuminate\Console\Scheduling\CallbackEvent;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -51,6 +53,32 @@ class DemoTest extends TestCase
         @rmdir($this->dir);
 
         parent::tearDown();
+    }
+
+    // ── Programación del reset ──────────────────────────────────────
+
+    /**
+     * Regresión: con Schedule::command el scheduler lanza otro PHP con
+     * proc_open, y en Hostinger falló («posix_spawn() failed: Operation not
+     * permitted») a las hh:00, cuando arrancan los cron de todas las apps.
+     */
+    public function test_el_reset_corre_en_el_mismo_proceso_a_las_4_07_de_argentina(): void
+    {
+        $eventos = collect(app(Schedule::class)->events())
+            ->filter(fn ($e) => $e->description === 'docbrainer:demo-reset');
+
+        $this->assertCount(1, $eventos);
+        $reset = $eventos->first();
+
+        $this->assertInstanceOf(CallbackEvent::class, $reset);
+        $this->assertSame('7 4 * * *', $reset->expression);
+        $this->assertSame('America/Argentina/Buenos_Aires', $reset->timezone);
+
+        config(['demo.enabled' => false]);
+        $this->assertFalse($reset->filtersPass($this->app));
+
+        config(['demo.enabled' => true]);
+        $this->assertTrue($reset->filtersPass($this->app));
     }
 
     // ── Salvaguardas ────────────────────────────────────────────────
